@@ -7,6 +7,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"student" | "staff">("student");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -42,6 +43,7 @@ export default function SignUpPage() {
           id: data.user.id,
           email,
           role,
+          full_name: fullName,
         });
 
       if (profileError) {
@@ -97,6 +99,17 @@ export default function SignUpPage() {
             className="w-full mt-1 p-2 border rounded"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
+          />
+        </label>
+
+        <label className="block mb-3">
+          <span className="font-medium">Full Name</span>
+          <input
+            type="full_name"
+            required
+            className="w-full mt-1 p-2 border rounded"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
           />
         </label>
 
