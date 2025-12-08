@@ -5,6 +5,7 @@ import StaffDashboard from "./pages/StaffDashboard";
 import HomePage from './pages/HomePage';
 import ProtectedRoute from "./components/ProtectedRoute";
 import StudentQueue from "./pages/StudentQueue";
+import UpdatePassword from "./components/layouts/UpdatePassword";
 
 import { useUserRole } from "./hooks/useUserRole";
 
@@ -19,14 +20,28 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/home" element={<HomePage />} />
-        <Route path="/student/queue" element={<StudentQueue />} />
-
+        <Route path="/update-password" element={<UpdatePassword />} />
         {/* Student-only page */}
         <Route
           path="/student/dashboard"
           element={
-            <ProtectedRoute isAllowed={role === "student" || role === "admin"} loading={loading}>
+            <ProtectedRoute
+              isAllowed={role === "student" || role === "admin"}
+              loading={loading}
+            >
               <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/student/queue"
+          element={
+            <ProtectedRoute
+              isAllowed={role === "student" || role === "admin"}
+              loading={loading}
+            >
+              <StudentQueue />
             </ProtectedRoute>
           }
         />
@@ -35,7 +50,10 @@ function App() {
         <Route
           path="/staff/dashboard"
           element={
-            <ProtectedRoute isAllowed={role === "staff" || role === "admin"} loading={loading}>
+            <ProtectedRoute
+              isAllowed={role === "staff" || role === "admin"}
+              loading={loading}
+            >
               <StaffDashboard />
             </ProtectedRoute>
           }
