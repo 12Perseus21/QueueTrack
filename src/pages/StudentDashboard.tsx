@@ -9,18 +9,18 @@ import {
   Users,
 } from "lucide-react";
 
-import StudentNavbar from "../components/layouts/StudentNavbar";
+import StudentNavbar from "../components/layouts/Navbar";
 
-// --- 1. FIXED TYPES (Matches your UUID Database) ---
+// --- FIXED TYPES ---
 interface Office {
-  id: string; // Changed from number to string
+  id: string;
   name: string;
   description: string;
 }
 
 interface QueueEntry {
-  id: string; // Changed from number to string
-  office_id: string; // Changed from number to string
+  id: string;
+  office_id: string;
   student_number: string;
   status: string;
 }
@@ -50,11 +50,11 @@ export default function StudentDashboard() {
       .from("queue_entries")
       .select("*")
       .eq("student_number", userId)
-      .eq("status", "waiting")
-      .maybeSingle(); // <--- CHANGED from .single() to .maybeSingle()
+      // FIXED: Check for BOTH 'waiting' AND 'called'
+      // This ensures the banner stays visible when staff calls the student
+      .in("status", ["waiting", "called"])
+      .maybeSingle();
 
-    // .maybeSingle() returns null if not found, which is what we want.
-    // It only returns an error if something actually broke (like RLS).
     if (!error) {
       setMyQueue(queue);
     } else {
@@ -151,14 +151,21 @@ export default function StudentDashboard() {
           }}
           className="w-full max-w-[800px] px-5 mb-6 cursor-pointer"
         >
-          <div className="bg-brand text-white p-4 rounded-xl shadow-lg flex items-center justify-between animate-fade-in">
+          {/* Change color if Called to alert user */}
+          <div
+            className={`text-white p-4 rounded-xl shadow-lg flex items-center justify-between animate-fade-in ${
+              myQueue.status === "called" ? "bg-green-600" : "bg-brand"
+            }`}
+          >
             <div className="flex items-center gap-3">
               <div className="bg-white/20 p-2 rounded-full">
                 <Users className="w-5 h-5 text-white" />
               </div>
               <div>
                 <p className="text-xs opacity-80 uppercase font-bold tracking-wider">
-                  You are in queue
+                  {myQueue.status === "called"
+                    ? "IT'S YOUR TURN!"
+                    : "You are in queue"}
                 </p>
                 <p className="font-bold">Tap to view your ticket</p>
               </div>

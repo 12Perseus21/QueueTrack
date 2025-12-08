@@ -3,7 +3,7 @@ import { supabase } from "../../api/supabaseClient"; // Adjust path if needed
 import logo from "../../assets/logo.svg";
 import { LogOut } from "lucide-react";
 
-export default function StudentNavbar() {
+export default function Navbar() {
   const navigate = useNavigate();
 
   const handleLogout = async () => {

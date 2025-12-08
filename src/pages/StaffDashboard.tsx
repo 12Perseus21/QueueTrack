@@ -3,6 +3,8 @@ import { supabase } from "../api/supabaseClient";
 import { useNavigate } from "react-router-dom";
 import { LogOut, User, Bell, CheckCircle, XCircle } from "lucide-react";
 
+import AdminNavbar from "../components/layouts/Navbar";
+
 // --- Interfaces ---
 interface Office {
   id: string;
@@ -183,113 +185,109 @@ export default function StaffDashboard() {
     );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              Staff Dashboard
-            </h1>
-            <p className="text-sm text-gray-500">
-              Office:{" "}
-              <span className="font-bold text-brand">{office?.name}</span>
-            </p>
-          </div>
-          <button
-            onClick={logout}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            Logout
-          </button>
-        </div>
-
-        {/* Action Bar */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-semibold text-gray-700 flex items-center gap-2">
-            <User className="w-5 h-5" />
-            Current Queue ({queue.length})
-          </h2>
-
-          <button
-            onClick={callNext}
-            className="flex items-center gap-2 px-6 py-3 bg-brand text-white font-bold rounded-xl shadow-lg shadow-brand/20 hover:bg-brand-dark active:scale-95 transition-all"
-          >
-            <Bell className="w-5 h-5" />
-            CALL NEXT STUDENT
-          </button>
-        </div>
-
-        {/* Queue List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          {queue.length === 0 ? (
-            <div className="p-10 text-center text-gray-400">
-              No students currently waiting.
+    <div>
+      <AdminNavbar />
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-[32px] font-bold text-gray-800">
+                Staff Dashboard
+              </h1>
+              <p className="text-[20px] text-gray-500">
+                Office:{" "}
+                <span className="font-bold text-brand">{office?.name}</span>
+              </p>
             </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {queue.map((entry) => (
-                <div
-                  key={entry.id}
-                  className={`p-4 flex flex-col md:flex-row justify-between items-center gap-4 transition-colors ${
-                    entry.status === "called"
-                      ? "bg-green-50/50 border-l-4 border-green-500"
-                      : "hover:bg-gray-50"
-                  }`}
-                >
-                  {/* Student Info */}
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                        entry.status === "called"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {entry.order_number}
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-800">
-                        {formatQueueNumber(entry.order_number)}
-                      </h3>
-                      <p
-                        className={`text-xs font-bold uppercase tracking-wider ${
+          </div>
+
+          {/* Action Bar */}
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-semibold text-gray-700 flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Current Queue ({queue.length})
+            </h2>
+
+            <button
+              onClick={callNext}
+              className="flex items-center gap-2 px-6 py-3 bg-brand text-white font-bold rounded-xl shadow-lg shadow-brand/20 hover:bg-brand-dark active:scale-95 transition-all cursor-pointer"
+            >
+              <Bell className="w-5 h-5" />
+              CALL NEXT STUDENT
+            </button>
+          </div>
+
+          {/* Queue List */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {queue.length === 0 ? (
+              <div className="p-10 text-center text-gray-400">
+                No students currently waiting.
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {queue.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className={`p-4 flex flex-col md:flex-row justify-between items-center gap-4 transition-colors ${
+                      entry.status === "called"
+                        ? "bg-green-50/50 border-l-4 border-green-500"
+                        : "hover:bg-gray-50"
+                    }`}
+                  >
+                    {/* Student Info */}
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
                           entry.status === "called"
-                            ? "text-green-600"
-                            : "text-gray-400"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-600"
                         }`}
                       >
-                        {entry.status}
-                      </p>
+                        {entry.order_number}
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-800">
+                          {formatQueueNumber(entry.order_number)}
+                        </h3>
+                        <p
+                          className={`text-xs font-bold uppercase tracking-wider ${
+                            entry.status === "called"
+                              ? "text-green-600"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          {entry.status}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 w-full md:w-auto">
+                      {entry.status === "called" && (
+                        <button
+                          onClick={() => markServed(entry.id)}
+                          className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition cursor-pointer"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Mark Done
+                        </button>
+                      )}
+
+                      {/* Skip Button (Available for waiting or called) */}
+                      <button
+                        onClick={() => markSkipped(entry.id)}
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition cursor-pointer"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Remove from queue
+                      </button>
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2 w-full md:w-auto">
-                    {entry.status === "called" && (
-                      <button
-                        onClick={() => markServed(entry.id)}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Mark Done
-                      </button>
-                    )}
-
-                    {/* Skip Button (Available for waiting or called) */}
-                    <button
-                      onClick={() => markSkipped(entry.id)}
-                      className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition"
-                    >
-                      <XCircle className="w-4 h-4" />
-                      No Show
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

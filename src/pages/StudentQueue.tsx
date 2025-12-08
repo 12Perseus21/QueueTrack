@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, Users } from "lucide-react";
-import StudentNavbar from "../components/layouts/StudentNavbar";
+import StudentNavbar from "../components/layouts/Navbar";
 import { supabase } from "../api/supabaseClient";
 
 // --- Interfaces ---
@@ -298,7 +298,8 @@ export default function StudentQueue() {
 
               <button
                 onClick={leaveQueue}
-                disabled={loading || isMyTurn} // Disable leaving if it's already your turn
+                // FIXED: Removed '|| isMyTurn'. Now it is ONLY disabled while loading.
+                disabled={loading}
                 className="mt-6 text-[14px] text-white/70 hover:text-white underline decoration-white/30 hover:decoration-white transition-colors cursor-pointer disabled:opacity-50"
               >
                 {loading ? "Processing..." : "Leave Queue"}
