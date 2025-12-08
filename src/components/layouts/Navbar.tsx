@@ -7,15 +7,17 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    // 1. Sign out from Supabase
-    const { error } = await supabase.auth.signOut();
+    const confirmLogout = window.confirm(
+      "Are you sure you want to logout?"
+    );
 
-    if (error) {
-      console.error("Error logging out:", error.message);
+    if (confirmLogout) {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Error logging out:", error.message);
+      }
+      navigate("/");
     }
-
-    // 2. Redirect to Login Page (Root)
-    navigate("/");
   };
 
   return (
