@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../api/supabaseClient";
+import { supabase } from "../../api/supabaseClient";
 import { useNavigate } from "react-router-dom";
 
-export default function LoginPage() {
+interface LoginProps {
+  onSwitchToSignup: () => void;
+  onSwitchToForgot: () => void;
+}
+
+export default function Login({ onSwitchToSignup, onSwitchToForgot }: LoginProps) {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -68,7 +73,7 @@ export default function LoginPage() {
       navigate("/student");
     } else if (profile?.role === "staff") {
       navigate("/staff");
-    } else if (profile?.role === "admin"){
+    } else if (profile?.role === "admin") {
       console.log("admin login");
       navigate("/staff");
     } else if (!profile) {
@@ -80,62 +85,57 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form
-        onSubmit={handleLogin}
-        className="bg-white p-8 rounded-lg shadow-md w-full max-w-md"
-      >
-        <h1 className="text-2xl font-bold mb-6 text-center">QueueTrack Login</h1>
+    <form
+      onSubmit={handleLogin}
+      className="w-full h-full flex flex-col items-center lg:items-center lg:justify-center "
+    >
+      <h2 className="font-bold text-[24px] mt-5">Login Account</h2>
+      <h3 className="text-[14px] text-center w-[330px] text-secondary">
+        Dont have an account yet?
+        <span className="underlined-text" onClick={onSwitchToSignup}>
+          {" "}
+          Sign up here
+        </span>
+      </h3>
 
-        {errorMessage && (
-          <p className="text-red-600 text-sm mb-3">{errorMessage}</p>
-        )}
-
-        <label className="block mb-3">
+      <div className="w-[330px] mt-5">
+        <label className="">
           <span className="font-medium">Email</span>
           <input
             type="email"
             required
-            className="w-full mt-1 p-2 border rounded"
+            className="input-brand"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </label>
+      </div>
 
+      <div className="w-[330px] mt-3 mb-5">
         <label className="block mb-4">
           <span className="font-medium">Password</span>
           <input
             type="password"
             required
-            className="w-full mt-1 p-2 border rounded"
+            className="input-brand"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </label>
+      </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          {loading ? "Logging in..." : "Login"}
-        </button>
+      <button type="submit" disabled={loading} className="button-primary mb-2">
+        {loading ? "Logging in..." : "Login"}
+      </button>
 
-        <p
-        className="text-sm text-blue-600 text-center mt-3 cursor-pointer hover:underline"
-        onClick={() => navigate("/forgot-password")}
-        >
+      {errorMessage && <p className="text-red-600 text-sm">{errorMessage}</p>}
+
+      <p
+        className="underlined-text"
+        onClick={onSwitchToForgot}
+      >
         Forgot password?
-        </p>
-
-        <p
-        className="text-sm text-blue-600 text-center mt-2 cursor-pointer hover:underline"
-        onClick={() => navigate("/signup")}
-        >
-        Don't have an account? Sign Up
-        </p>
-
-      </form>
-    </div>
+      </p>
+    </form>
   );
 }
