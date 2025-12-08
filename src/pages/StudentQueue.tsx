@@ -15,7 +15,8 @@ interface QueueEntry {
   office_id: string;
   student_number: string;
   order_number: number;
-  status: "waiting" | "serving" | "cancelled" | "completed";
+  // FIXED: Updated status types to match what Staff Dashboard actually writes
+  status: "waiting" | "called" | "served" | "cancelled" | "skipped";
   created_at: string;
 }
 
@@ -61,17 +62,18 @@ export default function StudentQueue() {
     if (!office) return;
 
     try {
-      // Get "Now Serving"
+      // A. Get "Now Serving"
+      // FIXED: Changed status from 'serving' to 'called' to match Staff Dashboard
       const { data: serving } = await supabase
         .from("queue_entries")
         .select("order_number")
         .eq("office_id", office.id)
-        .eq("status", "serving")
+        .eq("status", "called") // <--- THIS WAS THE BUG
         .maybeSingle();
 
       setCurrentServing(serving ? serving.order_number : null);
 
-      // Get "Waiting List"
+      // B. Get "Waiting List"
       const { data: list, error } = await supabase
         .from("queue_entries")
         .select("*")
@@ -82,11 +84,17 @@ export default function StudentQueue() {
       if (error) throw error;
       setQueueList(list || []);
 
-      // Find if "I" am in THIS specific queue list
-      const myEntry = list?.find(
-        (entry: QueueEntry) => entry.student_number === userId
-      );
-      setMyQueue(myEntry || null);
+      // C. Find if "I" am in the list (Waiting OR Called)
+      // If I am being called, I still want to see my ticket on screen!
+      const { data: myActiveTicket } = await supabase
+        .from("queue_entries")
+        .select("*")
+        .eq("office_id", office.id)
+        .eq("student_number", userId)
+        .in("status", ["waiting", "called"]) // Fetch if waiting OR called
+        .maybeSingle();
+
+      setMyQueue(myActiveTicket || null);
     } catch (error) {
       console.error("Error fetching queue:", error);
     } finally {
@@ -118,32 +126,28 @@ export default function StudentQueue() {
     };
   }, [userId, office]);
 
-  // --- JOIN QUEUE (WITH RESTRICTION) ---
+  // --- JOIN QUEUE ---
   async function joinQueue() {
     if (!userId || !office) return;
     setLoading(true);
 
     try {
       // 1. CHECK: Is student already in ANY queue?
-      // We check for status 'waiting' OR 'serving' across ALL offices (no office_id filter)
       const { data: activeQueues, error: checkError } = await supabase
         .from("queue_entries")
         .select("id, status")
         .eq("student_number", userId)
-        .in("status", ["waiting", "serving"]); // Check both statuses
+        .in("status", ["waiting", "called"]); // Block if waiting OR called
 
       if (checkError) throw checkError;
 
-      // If any record is returned, block them.
       if (activeQueues && activeQueues.length > 0) {
-        alert(
-          "You are already in a queue! You must leave your current queue before joining another."
-        );
+        alert("You are already in a queue!");
         setLoading(false);
-        return; // STOP HERE
+        return;
       }
 
-      // 2. If clear, proceed to get the next number
+      // 2. Get next number
       const { data: maxEntry, error: fetchError } = await supabase
         .from("queue_entries")
         .select("order_number")
@@ -156,7 +160,7 @@ export default function StudentQueue() {
 
       const nextOrderNumber = maxEntry ? maxEntry.order_number + 1 : 101;
 
-      // 3. Insert new entry
+      // 3. Insert
       const { error: insertError } = await supabase
         .from("queue_entries")
         .insert({
@@ -199,6 +203,10 @@ export default function StudentQueue() {
     : 0;
   const estWaitTime = (myPosition + 1) * 5;
 
+  // Determine Ticket State
+  // If my status is 'called', show a special message instead of position
+  const isMyTurn = myQueue?.status === "called";
+
   if (!office) return null;
 
   return (
@@ -218,23 +226,47 @@ export default function StudentQueue() {
         </div>
 
         {/* NOW SERVING BOARD */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center mb-6">
+        <div
+          className={`p-6 rounded-2xl shadow-sm border text-center mb-6 transition-colors duration-500 ${
+            isMyTurn
+              ? "bg-green-50 border-green-500"
+              : "bg-white border-gray-100"
+          }`}
+        >
           <h2 className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">
             Now Serving
           </h2>
-          <div className="text-6xl font-black text-brand tracking-tighter">
+          <div
+            className={`text-6xl font-black tracking-tighter ${
+              isMyTurn
+                ? "text-green-600 scale-110 transform transition-transform"
+                : "text-brand"
+            }`}
+          >
             {currentServing ? formatQueueNumber(currentServing) : "---"}
           </div>
           <div className="flex justify-center items-center gap-2 mt-4 text-gray-500 text-sm">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-            <span>Counter 1</span>
+            <div
+              className={`w-2 h-2 rounded-full animate-pulse ${
+                isMyTurn ? "bg-green-500" : "bg-brand"
+              }`}
+            ></div>
+            <span className={isMyTurn ? "font-bold text-green-700" : ""}>
+              {isMyTurn ? "IT'S YOUR TURN!" : "Counter 1"}
+            </span>
           </div>
         </div>
 
         {/* INTERACTION AREA */}
         {myQueue ? (
           // In Queue State
-          <div className="bg-brand text-white rounded-2xl p-6 shadow-lg shadow-brand/30 relative overflow-hidden mb-8 animate-fade-in">
+          <div
+            className={`text-white rounded-2xl p-6 shadow-lg relative overflow-hidden mb-8 animate-fade-in ${
+              isMyTurn
+                ? "bg-green-600 shadow-green-600/30"
+                : "bg-brand shadow-brand/30"
+            }`}
+          >
             <div className="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
             <div className="relative z-10 text-center">
               <h3 className="text-white/80 text-sm font-medium mb-1">
@@ -244,22 +276,30 @@ export default function StudentQueue() {
                 {formatQueueNumber(myQueue.order_number)}
               </div>
 
-              <div className="flex justify-center gap-6 text-sm bg-black/10 py-3 rounded-lg backdrop-blur-sm">
-                <div className="flex items-center gap-1.5">
-                  <Users className="w-4 h-4 text-white/70" />
-                  <span>{myPosition} ahead</span>
+              {!isMyTurn && (
+                <div className="flex justify-center gap-6 text-sm bg-black/10 py-3 rounded-lg backdrop-blur-sm">
+                  <div className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-white/70" />
+                    <span>{myPosition} ahead</span>
+                  </div>
+                  <div className="w-px bg-white/20"></div>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-white/70" />
+                    <span>~{estWaitTime} mins</span>
+                  </div>
                 </div>
-                <div className="w-px bg-white/20"></div>
-                <div className="flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-white/70" />
-                  <span>~{estWaitTime} mins</span>
+              )}
+
+              {isMyTurn && (
+                <div className="bg-white/20 py-2 rounded-lg font-bold animate-pulse">
+                  Please proceed to the counter
                 </div>
-              </div>
+              )}
 
               <button
                 onClick={leaveQueue}
-                disabled={loading}
-                className="mt-6 text-[14px] text-white/70 hover:text-white underline decoration-white/30 hover:decoration-white transition-colors cursor-pointer"
+                disabled={loading || isMyTurn} // Disable leaving if it's already your turn
+                className="mt-6 text-[14px] text-white/70 hover:text-white underline decoration-white/30 hover:decoration-white transition-colors cursor-pointer disabled:opacity-50"
               >
                 {loading ? "Processing..." : "Leave Queue"}
               </button>
