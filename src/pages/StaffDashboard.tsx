@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, Bell, CheckCircle, XCircle } from "lucide-react";
+import { User, Bell, CheckCircle, XCircle } from "lucide-react";
 
 import AdminNavbar from "../components/layouts/Navbar";
 
@@ -133,11 +133,6 @@ export default function StaffDashboard() {
     fetchQueue();
   }
 
-  // 6. Logout
-  async function logout() {
-    await supabase.auth.signOut();
-    navigate("/");
-  }
 
   // --- Effects ---
 
