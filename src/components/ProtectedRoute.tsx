@@ -23,7 +23,7 @@ export default function ProtectedRoute({
 
   // If not allowed → redirect to login
   if (!isAllowed) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   return <>{children}</>;

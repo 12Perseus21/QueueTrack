@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { supabase } from "../../api/supabaseClient";
-import { useNavigate } from "react-router-dom";
 
-export default function SignUp({ onSwitchToLogin }: { onSwitchToLogin: () => void }) {
-  const navigate = useNavigate();
+export default function SignUp({
+  onSwitchToLogin,
+}: {
+  onSwitchToLogin: () => void;
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -23,10 +25,18 @@ export default function SignUp({ onSwitchToLogin }: { onSwitchToLogin: () => voi
 
     setLoading(true);
 
-    // Sign up with Supabase Auth
+    // 1. Sign up with Supabase Auth
+    // We pass full_name and role in 'options'.
+    // The SQL Trigger we created will grab these and create the profile automatically.
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          full_name: fullName,
+          role: role,
+        },
+      },
     });
 
     if (error) {
@@ -35,21 +45,13 @@ export default function SignUp({ onSwitchToLogin }: { onSwitchToLogin: () => voi
       return;
     }
 
+    // 2. Success Handling
+    // We don't need to manually insert into 'profiles' anymore!
     if (data.user) {
-      // Insert into profiles table
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: data.user.id,
-        email,
-        role,
-        full_name: fullName,
-      });
-
-      if (profileError) {
-        setErrorMessage(profileError.message);
-      } else {
-        alert("Sign-up successful! Please log in.");
-        navigate("/login");
-      }
+      alert(
+        "Sign-up successful! Please check your email to confirm, then log in."
+      );
+      onSwitchToLogin();
     }
 
     setLoading(false);
@@ -63,11 +65,16 @@ export default function SignUp({ onSwitchToLogin }: { onSwitchToLogin: () => voi
       <h2 className="font-bold text-[24px] mt-5">Create Your Account</h2>
       <h3 className="text-[14px] text-center w-[330px] text-secondary">
         Already have an account yet?
-        <span className="underlined-text" onClick={onSwitchToLogin}>
+        <span
+          className="underlined-text cursor-pointer"
+          onClick={onSwitchToLogin}
+        >
           {" "}
           Log in here
         </span>
       </h3>
+
+      {/* Email */}
       <div className="w-[330px] mt-5">
         <label className="">
           <span className="font-medium">Email</span>
@@ -81,6 +88,7 @@ export default function SignUp({ onSwitchToLogin }: { onSwitchToLogin: () => voi
         </label>
       </div>
 
+      {/* Password */}
       <div className="w-[330px] mt-3">
         <label className="">
           <span className="font-medium">Password</span>
@@ -94,6 +102,7 @@ export default function SignUp({ onSwitchToLogin }: { onSwitchToLogin: () => voi
         </label>
       </div>
 
+      {/* Confirm Password */}
       <div className="w-[330px] mt-3">
         <label className="">
           <span className="font-medium">Confirm Password</span>
@@ -107,11 +116,12 @@ export default function SignUp({ onSwitchToLogin }: { onSwitchToLogin: () => voi
         </label>
       </div>
 
+      {/* Full Name */}
       <div className="w-[330px] mt-3">
         <label className="">
           <span className="font-medium">Full Name</span>
           <input
-            type="full_name"
+            type="text"
             required
             className="input-brand"
             value={fullName}
@@ -120,6 +130,7 @@ export default function SignUp({ onSwitchToLogin }: { onSwitchToLogin: () => voi
         </label>
       </div>
 
+      {/* Role Selection */}
       <div className="w-[330px] mt-3 mb-5">
         <label className="">
           <span className="font-medium">Role</span>

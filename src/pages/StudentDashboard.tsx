@@ -1,17 +1,26 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../api/supabaseClient";
+import {
+  FileText,
+  Stethoscope,
+  ChevronRight,
+  Building,
+  Users,
+} from "lucide-react";
 
-// Type definitions for database records
+import StudentNavbar from "../components/layouts/StudentNavbar";
+
+// --- 1. FIXED TYPES (Matches your UUID Database) ---
 interface Office {
-  id: number;
+  id: string; // Changed from number to string
   name: string;
   description: string;
 }
 
 interface QueueEntry {
-  id: number;
-  office_id: number;
+  id: string; // Changed from number to string
+  office_id: string; // Changed from number to string
   student_number: string;
   status: string;
 }
@@ -23,7 +32,7 @@ export default function StudentDashboard() {
   const [userId, setUserId] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Fetch offices
+  // 1. Fetch Offices
   async function fetchOffices() {
     const { data, error } = await supabase
       .from("offices")
@@ -33,45 +42,32 @@ export default function StudentDashboard() {
     if (!error) setOffices(data || []);
   }
 
-  // Fetch student queue entry (active only)
+  // 2. Fetch Active Queue (FIXED)
   async function fetchMyQueue() {
     if (!userId) return;
 
-    const {
-      data: queue,
-      error,
-    } = await supabase
+    const { data: queue, error } = await supabase
       .from("queue_entries")
       .select("*")
       .eq("student_number", userId)
       .eq("status", "waiting")
-      .single();
+      .maybeSingle(); // <--- CHANGED from .single() to .maybeSingle()
 
-    if (!error) setMyQueue(queue);
-  }
-
-  // Join a queue
-  async function joinQueue(officeId: number) {
-    if (!userId) {
-      alert("Please log in first");
-      return;
-    }
-
-    const { error } = await supabase.from("queue_entries").insert({
-      office_id: officeId,
-      student_number: userId,
-      status: "waiting",
-    });
-
+    // .maybeSingle() returns null if not found, which is what we want.
+    // It only returns an error if something actually broke (like RLS).
     if (!error) {
-      alert("You've joined the queue!");
-      fetchMyQueue();
+      setMyQueue(queue);
     } else {
-      alert("Already in queue or something went wrong.");
+      console.error("Error fetching my queue:", error.message);
     }
   }
 
-  // Get logged-in user - redirect to login if not authenticated
+  // 3. Navigation Handler
+  const handleOfficeClick = (office: Office) => {
+    navigate("/student/queue", { state: { office } });
+  };
+
+  // 4. Auth Check & Initial Load
   useEffect(() => {
     const checkAuth = async () => {
       const { data } = await supabase.auth.getUser();
@@ -81,28 +77,26 @@ export default function StudentDashboard() {
         fetchOffices();
         setLoading(false);
       } else {
-        navigate("/login");
+        navigate("/");
       }
     };
-
     checkAuth();
-  }, []);
+  }, [navigate]);
 
-  // Outdated - Poll queue every 5s when userId is available
-  // Updated - real time fetching of queue status for better user experience
+  // 5. Real-time Queue Updates
   useEffect(() => {
     if (!userId) return;
 
     fetchMyQueue();
 
     const channel = supabase
-      .channel(`queue_updated_${userId}`)
+      .channel(`queue_dashboard_${userId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'queue_entries',
+          event: "*",
+          schema: "public",
+          table: "queue_entries",
           filter: `student_number=eq.${userId}`,
         },
         () => {
@@ -113,68 +107,100 @@ export default function StudentDashboard() {
 
     return () => {
       supabase.removeChannel(channel);
-    }
+    };
   }, [userId]);
 
-  if (loading) return <div className="p-6">Loading...</div>;
+  // Helper to get an icon based on office name
+  const getIconForOffice = (name: string) => {
+    if (name.toLowerCase().includes("clinic"))
+      return <Stethoscope className="w-8 h-8 text-brand" />;
+    if (name.toLowerCase().includes("registrar"))
+      return <FileText className="w-8 h-8 text-brand" />;
+    return <Building className="w-8 h-8 text-brand" />;
+  };
+
+  if (loading)
+    return (
+      <div className="h-screen flex items-center justify-center text-brand font-bold animate-pulse">
+        Loading Dashboard...
+      </div>
+    );
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">QueueTrack — Student Dashboard</h1>
+    <div className="min-h-screen bg-[#fafafa] flex flex-col items-center">
+      <StudentNavbar />
 
-      <button
-        onClick={async () => {
-          await supabase.auth.signOut();
-          window.location.href = "/login"; // safest redirect
-        }}
-        className="px-3 py-1 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
-      >
-        Logout
-      </button>
+      {/* Header Section */}
+      <div className="mt-10 mb-8 text-center px-4">
+        <h1 className="font-bold text-[28px] text-gray-900">
+          Available Offices
+        </h1>
+        <p className="text-gray-500 mt-2 text-[15px]">
+          Select an office below to view status or join the queue
+        </p>
+      </div>
 
-      {/* Show My Queue */}
-      {myQueue ? (
-        <div className="mb-6 p-4 bg-blue-100 border border-blue-300 rounded-lg">
-          <h2 className="text-lg font-semibold">You're in a Queue</h2>
-          <p className="mt-2">Office: {myQueue.office_id}</p>
-          <p>Status: {myQueue.status}</p>
-        </div>
-      ) : (
-        <div className="mb-4 p-4 bg-green-100 border border-green-300 rounded-lg">
-          <p>You are not in a queue.</p>
+      {/* Active Queue Banner */}
+      {myQueue && (
+        <div
+          onClick={() => {
+            const activeOffice = offices.find(
+              (o) => o.id === myQueue.office_id
+            );
+            if (activeOffice) handleOfficeClick(activeOffice);
+          }}
+          className="w-full max-w-[800px] px-5 mb-6 cursor-pointer"
+        >
+          <div className="bg-brand text-white p-4 rounded-xl shadow-lg flex items-center justify-between animate-fade-in">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-2 rounded-full">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs opacity-80 uppercase font-bold tracking-wider">
+                  You are in queue
+                </p>
+                <p className="font-bold">Tap to view your ticket</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 opacity-80" />
+          </div>
         </div>
       )}
-  
-      {/* Office List */}
-      <h2 className="text-xl font-semibold mb-2">Available Offices</h2>
-      <div className="space-y-3">
+
+      {/* Grid Container for Cards */}
+      <div className="w-full max-w-[800px] px-5 grid grid-cols-1 md:grid-cols-2 gap-4 pb-10">
         {offices.map((office) => (
-          <div
+          <button
             key={office.id}
-            className="p-4 bg-white shadow rounded-lg border flex justify-between items-center"
+            onClick={() => handleOfficeClick(office)}
+            className="group relative bg-white p-6 rounded-2xl shadow-sm border border-transparent hover:border-brand hover:shadow-md transition-all duration-300 text-left flex items-start gap-4 cursor-pointer"
           >
-            <div>
-              <h3 className="font-semibold">{office.name}</h3>
-              <p className="text-sm text-gray-600">{office.description}</p>
+            <div className="p-3 bg-brand/10 rounded-xl group-hover:bg-brand/20 transition-colors">
+              {getIconForOffice(office.name)}
             </div>
 
-            {!myQueue ? (
-              <button
-                onClick={() => joinQueue(office.id)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-              >
-                Join Queue
-              </button>
-            ) : (
-              <button
-                disabled
-                className="px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed"
-              >
-                In Queue
-              </button>
-            )}
-          </div>
+            <div className="flex-1">
+              <div className="flex justify-between items-center mb-1">
+                <h3 className="font-bold text-lg text-gray-800 group-hover:text-brand transition-colors">
+                  {office.name}
+                </h3>
+              </div>
+              <p className="text-sm text-gray-500 leading-relaxed line-clamp-2">
+                {office.description ||
+                  "Join the queue for inquiries and transactions."}
+              </p>
+            </div>
+
+            <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-brand absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />
+          </button>
         ))}
+
+        {offices.length === 0 && (
+          <div className="col-span-full text-center text-gray-400 py-10">
+            No offices available at the moment.
+          </div>
+        )}
       </div>
     </div>
   );

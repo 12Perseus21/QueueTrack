@@ -25,4 +25,8 @@ body {
   .underlined-text{
     @apply text-sm text-blue-600 text-center mt-3 cursor-pointer hover:underline
   }
+
+  .button-offices{
+    
+  }
 }
