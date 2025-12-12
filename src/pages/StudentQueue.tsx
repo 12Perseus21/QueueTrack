@@ -252,7 +252,7 @@ export default function StudentQueue() {
               }`}
             ></div>
             <span className={isMyTurn ? "font-bold text-green-700" : ""}>
-              {isMyTurn ? "IT'S YOUR TURN!" : "Counter 1"}
+              {isMyTurn ? "IT'S YOUR TURN!" : ""}
             </span>
           </div>
         </div>
