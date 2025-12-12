@@ -6,14 +6,20 @@ export default function SignUp({
 }: {
   onSwitchToLogin: () => void;
 }) {
+  // Form Data State
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"student" | "staff">("student");
+
+  // UI State
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [waitingForOtp, setWaitingForOtp] = useState(false);
+  const [otp, setOtp] = useState("");
 
+  // Initial Sign Up
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
     setErrorMessage("");
@@ -25,9 +31,6 @@ export default function SignUp({
 
     setLoading(true);
 
-    // 1. Sign up with Supabase Auth
-    // We pass full_name and role in 'options'.
-    // The SQL Trigger we created will grab these and create the profile automatically.
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -47,16 +50,80 @@ export default function SignUp({
 
     // 2. Success Handling
     // We don't need to manually insert into 'profiles' anymore!
-    if (data.user) {
-      alert(
-        "Sign-up successful! Please check your email to confirm, then log in."
-      );
-      onSwitchToLogin();
-    }
-
     setLoading(false);
+    setWaitingForOtp(true);
   }
 
+  // Code verification
+  async function handleVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setErrorMessage("");
+    setLoading(true);
+
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: otp,
+      type: 'signup'
+    })
+
+    if (error) {
+      setErrorMessage(error.message);
+      setLoading(false);
+      return;
+    }
+
+    // Success
+    setLoading(false);
+    alert("Sign up successful! You can now log in.");
+
+    onSwitchToLogin();
+  }
+
+  // Render OTP Verification Form - waiting for OTP
+  if (waitingForOtp) {
+    return (
+      <form
+        onSubmit={handleVerifyOtp}
+        className="w-full h-full flex flex-col items-center lg:items-center lg:justify-center"
+      >
+        <h2 className="font-bold text=[24px] mt-5">Enter OTP</h2>
+        <h3 className="text-[14px] text-center w-[330px] text-secondary mb-5">
+          We sent a 6 digit code to <br /> <span className="font-medium">{email}</span>
+        </h3>
+
+        <div className="w-[330px] mt-3">
+          <label>
+            <span className="font-medium">Confirmation Code</span>
+            <input
+              type="text"
+              required
+              className="input-brand text-center text-lg tracking-widest font-bold"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              placeholder="------"
+            />
+          </label>
+        </div>
+
+        {errorMessage && (
+          <p className="text-red-600 text-sm mb-3 mt-2">{errorMessage}</p>
+        )}
+
+        <button type="submit" disabled={loading} className="button-primary mt-5">
+          {loading ? "Verifying..." : "Verify OTP"}
+        </button>
+
+        <p
+          className="text-sm text-gray-500 mt-4 cursor-pointer hover:underline"
+          onClick={() => setWaitingForOtp(false)}
+        >
+          Back to Sign Up
+        </p>
+      </form>
+    )
+  }
+
+  // Render Initial Sign Up Form
   return (
     <form
       onSubmit={handleSignUp}
